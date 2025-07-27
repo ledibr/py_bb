@@ -2,16 +2,20 @@ import pandas as pd
 from bs4 import BeautifulSoup, Comment
 
 from . import cache
-from .utils import most_recent_season, ACTIVE_TEAMS, append_player_id_or_alt_url_from_link, get_bref_table
+from .utils import most_recent_season, ACTIVE_TEAMS, append_bref_id_or_mlb_id_from_link, get_bref_table
 from .datasources.bref import BRefSession
 
 FORTY_MAN_TABLE_ID = 'the40man'
 
 session = BRefSession()
 
+# pylint: disable=line-too-long
+URL = "https://www.baseball-reference.com/teams/{team}/{year}.shtml"
+
+
 def get_soup(team: str) -> BeautifulSoup:
-    url = f'https://www.baseball-reference.com/teams/{team}/{most_recent_season()}.shtml'
-    s = session.get(url).content
+    url = URL.format(team=team, year=most_recent_season())
+    s = session.get(url, timeout=None).content
     return  BeautifulSoup(s, "lxml")
 
 def get_tables(soup: BeautifulSoup) -> pd.DataFrame:
@@ -27,7 +31,7 @@ def get_tables(soup: BeautifulSoup) -> pd.DataFrame:
 
     # add ID column name
     headings.append('player_ID')
-    headings.append('Alt URL')
+    headings.append('mlb_ID')
 
     # pull in data rows
     table_body = table.find('tbody')
@@ -42,7 +46,7 @@ def get_tables(soup: BeautifulSoup) -> pd.DataFrame:
         player_link = player_link.get('href')
 
         # determine whether the player has reached the majors and has a bref ID
-        append_player_id_or_alt_url_from_link(player_link, cols)
+        append_bref_id_or_mlb_id_from_link(player_link, cols)
 
         data.append([ele for ele in cols])
 

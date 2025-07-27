@@ -18,6 +18,8 @@ SCORE_PATTERN = r'\((\d*)\)'
 
 session = BRefSession()
 
+URL = 'https://www.baseball-reference.com/leagues/MLB-schedule.shtml'
+
 # convert a <p> tag on the page containing info about a game to a dict with the fields we want
 def _convert_tag_to_dict(game_tag: Tag, postseason_h2) -> dict:
     game = {}
@@ -81,8 +83,7 @@ def _get_postseason_h2(soup: BeautifulSoup) -> Tag:
 
 def get_soup() -> BeautifulSoup:
     # bref only has public pages for the current or immediately previous season
-    url = 'https://www.baseball-reference.com/leagues/MLB-schedule.shtml'
-    s = session.get(url).content
+    s = session.get(URL).content
     return BeautifulSoup(s, "lxml")
 
 @cache.df_cache(expires=1)

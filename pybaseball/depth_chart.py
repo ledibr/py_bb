@@ -39,6 +39,8 @@ IL_15 = 'IL-15'
 IL_10 = 'IL-10'
 IL_7 = 'IL-7'
 
+URL = 'https://www.baseball-reference.com/teams/{team_abbrev}/{team_dashes}-organization-{player_type}.shtml'
+
 # enum representing levels of organized baseball
 class Level(EnumBase):
     MAJ = 1
@@ -88,8 +90,7 @@ def get_player_status(player_link: Tag) -> str:
     return ''
 
 def get_soup(team: str, player_type: str) -> BeautifulSoup:
-    url = (f'https://www.baseball-reference.com/teams/{team}/{ACTIVE_TEAMS_MAPPING[team]}-'
-           f'organization-{player_type}.shtml')
+    url = URL.format(team_abbrev=team, team_dashes=ACTIVE_TEAMS_MAPPING[team], player_type=player_type)
     s = session.get(url).content
     return BeautifulSoup(s, "lxml")
 

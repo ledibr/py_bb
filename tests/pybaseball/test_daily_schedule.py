@@ -1,20 +1,18 @@
-import unittest
 import datetime
 from typing import Callable
 
-import pandas as pd
 import pytest
 
 from pybaseball import full_schedule
-from pybaseball.daily_schedule import daily_schedule
+from pybaseball.daily_schedule import daily_schedule, URL
 
 @pytest.fixture(name="sample_html")
 def _sample_html(get_data_file_contents: Callable[[str], str]) -> str:
     return get_data_file_contents('daily_schedule.html')
 
-def test_daily_schedule(response_get_monkeypatch: Callable, sample_html: str):
+def test_daily_schedule(bref_get_monkeypatch: Callable, sample_html: str):
 
-    response_get_monkeypatch(sample_html)
+    bref_get_monkeypatch(sample_html, URL)
 
     # never games in January
     jan = datetime.datetime(2025, 1, 1)

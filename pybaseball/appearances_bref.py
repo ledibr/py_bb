@@ -9,8 +9,10 @@ from .datasources.bref import BRefSession
 
 session = BRefSession()
 
+URL = 'https://www.baseball-reference.com/leagues/majors/{year}-appearances-fielding.shtml'
+
 def get_soup(year: int) -> BeautifulSoup:
-    url = f'https://www.baseball-reference.com/leagues/majors/{year}-appearances-fielding.shtml'
+    url = URL.format(year=year)
     s = session.get(url).content
     return BeautifulSoup(s, "lxml")
 

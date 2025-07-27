@@ -426,14 +426,14 @@ def norm_positions(pos: Union[int, str], to_word: bool = False, to_number: bool 
 # pull out bref ID from player page link using a regex
 def get_bref_id_from_player_link(player_link: str) -> str:
 
-	return re.search("players/[a-z]/([a-z0-9]+)\\.shtml", player_link).group(1)
+	return re.search("players/[a-z]/([a-z0-9']+)\\.shtml", player_link).group(1)
 
 # pull out MLBAM ID from redirect page link using a regex
 def get_mlbam_id_from_player_link(player_link: str) -> str:
 	parsed_url = urlparse(player_link)
 	return parse_qs(parsed_url.query)['mlb_ID'][0]
 
-def append_player_id_or_alt_url_from_link(player_link: str, cols: [str]):
+def append_bref_id_or_mlb_id_from_link(player_link: str, cols: [str]):
 	if player_link.startswith('/players/'):
 		# player has played in majors and has an id
 		# columns will expect player ID first and then alt_url
@@ -442,7 +442,7 @@ def append_player_id_or_alt_url_from_link(player_link: str, cols: [str]):
 	else:
 		# player has not reached the majors, give them an alternate url
 		cols.append('')
-		cols.append(player_link)
+		cols.append(get_mlbam_id_from_player_link(player_link))
 
 # find the table with the specified ID, either directly or by parsing the comment
 def get_bref_table(table_id: str, haystack: BeautifulSoup) -> BeautifulSoup | None:
