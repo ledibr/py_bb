@@ -1,12 +1,15 @@
+import re
 from collections import namedtuple
 from datetime import date, datetime, timedelta
 import functools
 import io
 from typing import Dict, Iterator, Optional, Tuple, Union
 import zipfile
+from urllib.parse import urlparse, parse_qs
 
 import pandas as pd
 import requests
+from bs4 import BeautifulSoup, Comment
 
 from . import cache
 
@@ -83,6 +86,41 @@ team_equivalents = [
     {'WHS', 'WNA'},
     {'WAS', 'WST'}
 ]
+
+ACTIVE_TEAMS_MAPPING = {
+	'ARI': 'arizona-diamondbacks',
+	'ATH': 'athletics',
+	'ATL': 'atlanta-braves',
+	'BAL': 'baltimore-orioles',
+	'BOS': 'boston-red-sox',
+	'CHC': 'chicago-cubs',
+	'CHW': 'chicago-white-sox',
+	'CIN': 'cincinnati-reds',
+	'CLE': 'cleveland-guardians',
+	'COL': 'colorado-rockies',
+	'DET': 'detroit-tigers',
+	'HOU': 'houston-astros',
+	'KCR': 'kansas-city-royals',
+	'LAA': 'los-angeles-angels',
+	'LAD': 'los-angeles-dodgers',
+	'MIA': 'miami-marlins',
+	'MIL': 'milwaukee-brewers',
+	'MIN': 'minnesota-twins',
+	'NYM': 'new-york-mets',
+	'NYY': 'new-york-yankees',
+	'PHI': 'philadelphia-phillies',
+	'PIT': 'pittsburgh-pirates',
+	'SDP': 'san-diego-padres',
+	'SEA': 'seattle-mariners',
+	'SFG': 'san-francisco-giants',
+	'STL': 'st-louis-cardinals',
+	'TBR': 'tampa-bay-rays',
+	'TEX': 'texas-rangers',
+	'TOR': 'toronto-blue-jays',
+	'WSN': 'washington-nationals'
+}
+
+ACTIVE_TEAMS = list(ACTIVE_TEAMS_MAPPING.keys())
 
 def get_first_season(team: str, include_equivalents: bool = True) -> Optional[int]:
     if not include_equivalents:
@@ -384,4 +422,44 @@ def norm_positions(pos: Union[int, str], to_word: bool = False, to_number: bool 
 		raise ValueError(f'{pos} is not a valid position!')
 	# lower() ok due to positional numbers being cast as strings when created
 	return normed.lower()
+
+# pull out bref ID from player page link using a regex
+def get_bref_id_from_player_link(player_link: str) -> str:
+
+	return re.search("players/[a-z]/([a-z0-9']+)\\.shtml", player_link).group(1)
+
+# pull out MLBAM ID from redirect page link using a regex
+def get_mlbam_id_from_player_link(player_link: str) -> str:
+	parsed_url = urlparse(player_link)
+	return parse_qs(parsed_url.query)['mlb_ID'][0]
+
+def append_bref_id_or_mlb_id_from_link(player_link: str, cols: [str]):
+	if player_link.startswith('/players/'):
+		# player has played in majors and has an id
+		# columns will expect player ID first and then alt_url
+		cols.append(get_bref_id_from_player_link(player_link))
+		cols.append('')
+	else:
+		# player has not reached the majors, give them an alternate url
+		cols.append('')
+		cols.append(get_mlbam_id_from_player_link(player_link))
+
+# find the table with the specified ID, either directly or by parsing the comment
+def get_bref_table(table_id: str, haystack: BeautifulSoup) -> BeautifulSoup | None:
+	table = haystack.find(id=table_id)
+
+	# first check for the table in the document
+	if table:
+		return table
+
+	# if not present, find the commented table and parse that
+	all_div = haystack.find(id=f'all_{table_id}')
+
+	# if that also isn't present, return
+	if not all_div:
+		return None
+
+	comment = all_div.find(text=lambda text: isinstance(text, Comment))
+	table_wrapper = BeautifulSoup(comment, 'lxml')
+	return table_wrapper.find(id=table_id)
 
